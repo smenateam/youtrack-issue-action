@@ -26,7 +26,7 @@ async function run() {
       youtrack.comments.create(task_id, {
         text: html_url
       }).then(comment => {
-        console.log({comment});
+        console.log('comment response {comment}');
       });
     });
 
