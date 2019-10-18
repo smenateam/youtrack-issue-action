@@ -1,6 +1,6 @@
-name: 'Your name here'
-description: 'Provide a description here'
-author: 'Your name or organization here'
+name: 'Youtrack-issue-linking'
+description: 'Linking by comments YouTrack issue with GitHub PR'
+author: 'SMENA'
 inputs:
   youtrack_url:
     description: 'base url of youtrack'
