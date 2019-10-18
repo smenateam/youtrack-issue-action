@@ -4,15 +4,12 @@ import * as github from '@actions/github';
 async function run() {
   try {
 
-    console.log(github.context.payload.pull_request)
-    if (github.context.payload.hasOwnProperty("pull_request")){
-        const pull_request = github.context.payload.pull_request
-        if (pull_request.hasOwnProperty("title")){
-          console.log(pull_request["title"])
-        }
-    }
-
-    console.log()
+    //console.log(github.context.payload.pull_request)
+    const pr_title = github.context.payload.pull_request["title"];
+    console.log(pr_title);
+    const regex = new RegExp('^([A-Z]+\\-\\d+)');
+    const task_num = pr_title.match(regex)[1];
+    console.log(task_num)
   } catch (error) {
     core.setFailed(error.message);
   }
