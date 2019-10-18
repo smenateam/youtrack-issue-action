@@ -23,12 +23,11 @@ async function run() {
       //console.log(JSON.stringify(issue));
       console.log(issue.id);
       task_id = issue.id;
-    });
-    console.log(task_id);
-    youtrack.comments.create(task_id, {
-      text: html_url
-    }).then(comment => {
-      console.log({comment});
+      youtrack.comments.create(task_id, {
+        text: html_url
+      }).then(comment => {
+        console.log({comment});
+      });
     });
 
   } catch (error) {
