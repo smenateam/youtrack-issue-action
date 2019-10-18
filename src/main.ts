@@ -25,16 +25,10 @@ async function run() {
       task_id = issue["id"];
     });
     console.log(task_id);
-    youtrack.issues.executeCommand({
-      query: 'for me',
-      comment: html_url,
-      issues: [
-        {
-          id: task_id
-        }
-      ]
-    }).then(response => {
-      console.log({response});
+    youtrack.comments.create(task_id, {
+      text: html_url
+    }).then(comment => {
+      console.log({comment});
     });
 
   } catch (error) {
