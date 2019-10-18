@@ -1,16 +1,9 @@
 import * as core from '@actions/core';
-import {wait} from './wait'
+import * as github from '@actions/github';
 
 async function run() {
   try {
-    const ms = core.getInput('milliseconds');
-    console.log(`Waiting ${ms} milliseconds ...`)
-
-    core.debug((new Date()).toTimeString())
-    await wait(parseInt(ms, 10));
-    core.debug((new Date()).toTimeString())
-
-    core.setOutput('time', new Date().toTimeString());
+    console.log(github.context.payload)
   } catch (error) {
     core.setFailed(error.message);
   }
