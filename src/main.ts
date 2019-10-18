@@ -7,6 +7,7 @@ async function run() {
   try {
 
     const youtrack_token = core.getInput('youtrack_token', {required: true});
+    const repo_token = core.getInput('repo_token', {required: true});
     const youtrack_url = core.getInput('youtrack_url', {required: true});
     const pr_title = github.context.payload.pull_request["title"];
     const html_url = github.context.payload.pull_request["html_url"];
@@ -25,6 +26,13 @@ async function run() {
       });
     });
     const youtrack_issue_url = youtrack_url + "/issue/" + task_num;
+    const client = new github.GitHub(repo_token);
+    await client.issues.createComment({
+      owner: github.context.repo.owner,
+      repo: github.context.repo.repo,
+      issue_number: github.context.payload.pull_request.number,
+      body: youtrack_issue_url
+    });
   } catch (error) {
     core.setFailed(error.message);
   }

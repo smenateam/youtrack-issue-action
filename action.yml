@@ -6,6 +6,8 @@ inputs:
     description: 'base url of youtrack'
   youtrack_token:
     description: 'youtrack token'
+  repo_token:
+    description: 'token for commenting PRs'
 runs:
   using: 'node12'
   main: 'lib/main.js'
