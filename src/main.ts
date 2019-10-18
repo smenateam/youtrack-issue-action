@@ -21,8 +21,8 @@ async function run() {
     let task_id;
     youtrack.issues.byId(task_num).then((issue: Issue) => {
       console.log(JSON.stringify(issue))
-      console.log(issue["issue"]);
-      task_id = issue["issue"]["id"];
+      console.log(issue["id"]);
+      task_id = issue["id"];
     });
     console.log(task_id);
     youtrack.issues.executeCommand({
