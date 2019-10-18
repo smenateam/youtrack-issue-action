@@ -24,7 +24,8 @@ async function run() {
         text: html_url
       });
     });
-
+    const youtrack_issue_url = youtrack_url + "/issue/${task_num}";
+    console.log(youtrack_issue_url)
   } catch (error) {
     core.setFailed(error.message);
   }
