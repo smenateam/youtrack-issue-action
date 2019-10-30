@@ -13,6 +13,7 @@ async function run() {
     const html_url = github.context.payload.pull_request["html_url"];
     const regex = new RegExp('^([A-Z]+\\-\\d+)(\\s+|\\:\\s*)');
     const task_num = pr_title.match(regex)[1];
+    console.log(task_num);
     const config = {
       baseUrl: youtrack_url,
       token: youtrack_token
