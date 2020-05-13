@@ -172,6 +172,10 @@ async function run() {
 
     const youtrackApi = youtrack.init(youtrackBaseURL, youtrackToken);
 
+    console.log("taskNum", taskNum);
+    console.log("youtrackFieldId", youtrackFieldId);
+    console.log("youtrackBaseURL", youtrackBaseURL);
+    console.log("youtrackToken", youtrackToken);
     switch (github.context.payload.action) {
       case "opened": {
         await client.issues.createComment({
@@ -184,7 +188,9 @@ async function run() {
           taskNum,
           youtrackFieldId
         );
+        console.log("prField", prField);
         const newPrField = addPrLinkInPrField(prField, prHtmlUrl);
+        console.log("newPrField", newPrField);
         await youtrackApi.updateIssue(taskNum, {
           fields: [newPrField],
         });
@@ -225,7 +231,7 @@ async function run() {
       console.log("PrFieldError", error);
       return;
     }
-    core.setFailed(error.message);
+    core.setFailed(error);
   }
 }
 
