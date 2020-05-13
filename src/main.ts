@@ -43,7 +43,6 @@ const youtrack = {
       );
       return prField;
     } catch (error) {
-      console.log("getIssueFieldById error", error);
       const errorMessage = `Request failed with status code ${error.response.status}: ${error.response.data.error_description}`;
       throw new YoutrackError(errorMessage);
     }
@@ -56,7 +55,6 @@ const youtrack = {
       );
       return issue;
     } catch (error) {
-      console.log("updateIssue error", error);
       const errorMessage = `Request failed with status code ${error.response.status}: ${error.response.data.error_description}`;
       throw new YoutrackError(errorMessage);
     }
@@ -111,9 +109,9 @@ function deletePrLinkInPrField(prField: any, prLink: string) {
       `Удаляемая ссылка на pull request: ${prLink} не найдена в описании`
     );
 
-  const regexPrLinkCheckbox = new RegExp(`- \\[.]${prLink}\\b\\n?`, "g");
+  const regexPrLinkCheckbox = new RegExp(`- \\[.]${prLink}\\b`, "g");
   const newPrFieldValue = {
-    text: oldPrFieldValue.text.replace(regexPrLinkCheckbox, ""),
+    text: oldPrFieldValue.text.replace(regexPrLinkCheckbox, `~~${prLink}~~`),
   };
 
   prField.value = newPrFieldValue;
@@ -174,10 +172,6 @@ async function run() {
 
     const youtrackApi = youtrack.init(youtrackBaseURL, youtrackToken);
 
-    console.log("taskNum", taskNum);
-    console.log("youtrackFieldId", youtrackFieldId);
-    console.log("youtrackBaseURL", youtrackBaseURL);
-    console.log("youtrackToken", youtrackToken);
     switch (github.context.payload.action) {
       case "opened": {
         await client.issues.createComment({
@@ -190,9 +184,7 @@ async function run() {
           taskNum,
           youtrackFieldId
         );
-        console.log("prField", prField);
         const newPrField = addPrLinkInPrField(prField, prHtmlUrl);
-        console.log("newPrField", newPrField);
         await youtrackApi.updateIssue(taskNum, {
           fields: [newPrField],
         });
@@ -203,9 +195,7 @@ async function run() {
           taskNum,
           youtrackFieldId
         );
-        console.log("prField", prField);
         const newPrField = addPrLinkInPrField(prField, prHtmlUrl);
-        console.log("newPrField", newPrField);
         await youtrackApi.updateIssue(taskNum, {
           fields: [newPrField],
         });
@@ -216,14 +206,12 @@ async function run() {
           taskNum,
           youtrackFieldId
         );
-        console.log("prField", prField);
         let newPrField = prField;
         if (prIsMerged) {
           newPrField = updatePrLinkInPrField(prField, prHtmlUrl, true);
         } else {
           newPrField = deletePrLinkInPrField(prField, prHtmlUrl);
         }
-        console.log("newPrField", newPrField);
         await youtrackApi.updateIssue(taskNum, {
           fields: [newPrField],
         });
@@ -237,7 +225,7 @@ async function run() {
       console.log("PrFieldError", error);
       return;
     }
-    core.setFailed(error);
+    core.setFailed(error.message);
   }
 }
 
