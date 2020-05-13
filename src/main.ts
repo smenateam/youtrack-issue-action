@@ -156,7 +156,14 @@ async function run() {
     const prIsMerged = github.context.payload.pull_request["merged"];
 
     const regex = new RegExp("^([A-Za-z]+[\\s-]\\d+)");
-    let taskNum = prTitle.match(regex)[1];
+    let taskNum = prTitle.match(regex);
+
+    if (taskNum === null) {
+      throw new Error(`Не найден номер youtrack задачи в ${prTitle}`);
+    }
+
+    taskNum = prTitle.match(regex)[1];
+
     taskNum = taskNum.replace(/\s/, "-");
 
     const youtrack_issue_url = `${youtrackBaseURL}/issue/${taskNum}`;
