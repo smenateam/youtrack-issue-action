@@ -1,39 +1,223 @@
-import * as core from '@actions/core';
-import * as github from '@actions/github';
-import {Issue, Youtrack} from "youtrack-rest-client";
+import * as core from "@actions/core";
+import * as github from "@actions/github";
+import axios, { AxiosRequestConfig, AxiosInstance } from "axios";
 
+class PrFieldError extends Error {
+  name: "PrFieldError";
+  constructor(message: string) {
+    super(message);
+    this.message = message;
+  }
+}
+class YoutrackError extends Error {
+  name: "YoutrackError";
+  constructor(message: string) {
+    super(message);
+    this.message = message;
+  }
+}
+const youtrack = {
+  youtrackAxiosInstance: null as AxiosInstance,
+  init(youtrackBaseURL: string, youtrackToken: string) {
+    const youtrackConfig: AxiosRequestConfig = {
+      baseURL: youtrackBaseURL,
+      headers: {
+        Authorization: youtrackToken,
+      },
+    };
+    this.youtrackAxiosInstance = axios.create(youtrackConfig);
+    return {
+      getIssueFieldById: this.getIssueFieldById.bind(this),
+      updateIssue: this.updateIssue.bind(this),
+    };
+  },
+  async getIssueFieldById(issueId: string, fieldId: string) {
+    try {
+      const { data: prField } = await this.youtrackAxiosInstance.get(
+        `/api/issues/${issueId}/customFields/${fieldId}`,
+        {
+          params: {
+            fields: "name,id,value(text)",
+          },
+        }
+      );
+      return prField;
+    } catch (error) {
+      const errorMessage = `Request failed with status code ${error.response.status}: ${error.response.data.error_description}`;
+      throw new YoutrackError(errorMessage);
+    }
+  },
+  async updateIssue(issueId: string, requestData: any) {
+    try {
+      const { data: issue } = await this.youtrackAxiosInstance.post(
+        `/api/issues/${issueId}`,
+        requestData
+      );
+      return issue;
+    } catch (error) {
+      const errorMessage = `Request failed with status code ${error.response.status}: ${error.response.data.error_description}`;
+      throw new YoutrackError(errorMessage);
+    }
+  },
+};
+
+function addPrLinkInPrField(
+  prField: any,
+  prLink: string,
+  merged: boolean = false
+) {
+  const status = merged ? "x" : " ";
+
+  const oldPrFieldValue = prField.value;
+
+  const newPrFieldValue = {
+    text: `- [${status}]${prLink}\n`,
+  };
+
+  if (oldPrFieldValue) {
+    const regexPrLink = new RegExp(`${prLink}`);
+    const textHasPrLink = !!oldPrFieldValue.text.match(regexPrLink);
+
+    if (textHasPrLink)
+      throw new PrFieldError(
+        `Добовляемая ссылка на pull request: ${prLink} уже есть в описании`
+      );
+
+    const textHasLineBreakInTheEnd = !!oldPrFieldValue.text.match(/\n$/);
+    newPrFieldValue.text = textHasLineBreakInTheEnd
+      ? `${oldPrFieldValue.text}${newPrFieldValue.text}`
+      : `${oldPrFieldValue.text}\n${newPrFieldValue.text}`;
+  }
+
+  prField.value = newPrFieldValue;
+
+  return prField;
+}
+function deletePrLinkInPrField(prField: any, prLink: string) {
+  const oldPrFieldValue = prField.value;
+
+  if (!oldPrFieldValue)
+    throw new PrFieldError(
+      `Удаляемая ссылка на pull request: ${prLink} не найдена, т.к. описание пустое`
+    );
+
+  const regexPrLink = new RegExp(`${prLink}`);
+  const textHasPrLink = !!oldPrFieldValue.text.match(regexPrLink);
+
+  if (!textHasPrLink)
+    throw new PrFieldError(
+      `Удаляемая ссылка на pull request: ${prLink} не найдена в описании`
+    );
+
+  const regexPrLinkCheckbox = new RegExp(`- \\[.]${prLink}\\b\\n?`, "g");
+  const newPrFieldValue = {
+    text: oldPrFieldValue.text.replace(regexPrLinkCheckbox, ""),
+  };
+
+  prField.value = newPrFieldValue;
+
+  return prField;
+}
+function updatePrLinkInPrField(prField: any, prLink: string, merged: boolean) {
+  const oldPrFieldValue = prField.value;
+
+  if (!oldPrFieldValue) return addPrLinkInPrField(prField, prLink, true);
+
+  const regexPrLink = new RegExp(`${prLink}`);
+  const textHasPrLink = !!oldPrFieldValue.text.match(regexPrLink);
+
+  if (!textHasPrLink) return addPrLinkInPrField(prField, prLink, true);
+
+  const status = merged ? "x" : " ";
+
+  const regexPrLinkCheckbox = new RegExp(`- \\[.]${prLink}\\b`, "g");
+  const newPrFieldValue = {
+    text: oldPrFieldValue.text.replace(
+      regexPrLinkCheckbox,
+      `- [${status}]${prLink}`
+    ),
+  };
+  prField.value = newPrFieldValue;
+
+  return prField;
+}
 
 async function run() {
   try {
+    const youtrackFieldId = core.getInput("youtrack_field_id", {
+      required: true,
+    });
+    const youtrackBaseURL = core.getInput("youtrack_url", { required: true });
+    const youtrackToken = core.getInput("youtrack_token", { required: true });
+    const repo_token = core.getInput("repo_token", { required: true });
 
-    const youtrack_token = core.getInput('youtrack_token', {required: true});
-    const repo_token = core.getInput('repo_token', {required: true});
-    const youtrack_url = core.getInput('youtrack_url', {required: true});
-    const pr_title = github.context.payload.pull_request["title"];
-    const html_url = github.context.payload.pull_request["html_url"];
-    const regex = new RegExp('^([A-Z]+\\-\\d+)');
-    const task_num = pr_title.match(regex)[1];
-    const config = {
-      baseUrl: youtrack_url,
-      token: youtrack_token
-    };
-    const youtrack = new Youtrack(config);
-    let task_id;
-    youtrack.issues.byId(task_num).then((issue: Issue) => {
-      task_id = issue.id;
-      youtrack.comments.create(task_id, {
-        text: html_url
-      });
-    });
-    const youtrack_issue_url = youtrack_url + "/issue/" + task_num;
+    const prTitle = github.context.payload.pull_request["title"];
+    const prHtmlUrl = github.context.payload.pull_request["html_url"];
+    const prIsMerged = github.context.payload.pull_request["merged"];
+
+    const regex = new RegExp("^([A-Za-z]+[\\s-]\\d+)");
+    let taskNum = prTitle.match(regex)[1];
+    taskNum = taskNum.replace(/\s/, "-");
+
+    const youtrack_issue_url = `${youtrackBaseURL}/issue/${taskNum}`;
+
     const client = new github.GitHub(repo_token);
-    await client.issues.createComment({
-      owner: github.context.repo.owner,
-      repo: github.context.repo.repo,
-      issue_number: github.context.payload.pull_request.number,
-      body: youtrack_issue_url
-    });
+
+    const youtrackApi = youtrack.init(youtrackBaseURL, youtrackToken);
+
+    switch (github.context.payload.action) {
+      case "opened": {
+        await client.issues.createComment({
+          owner: github.context.repo.owner,
+          repo: github.context.repo.repo,
+          issue_number: github.context.payload.pull_request.number,
+          body: youtrack_issue_url,
+        });
+        const prField = await youtrackApi.getIssueFieldById(
+          taskNum,
+          youtrackFieldId
+        );
+        const newPrField = addPrLinkInPrField(prField, prHtmlUrl);
+        await youtrackApi.updateIssue(taskNum, {
+          fields: [newPrField],
+        });
+        break;
+      }
+      case "reopened": {
+        const prField = await youtrackApi.getIssueFieldById(
+          taskNum,
+          youtrackFieldId
+        );
+        const newPrField = addPrLinkInPrField(prField, prHtmlUrl);
+        await youtrackApi.updateIssue(taskNum, {
+          fields: [newPrField],
+        });
+        break;
+      }
+      case "closed": {
+        const prField = await youtrackApi.getIssueFieldById(
+          taskNum,
+          youtrackFieldId
+        );
+        let newPrField = prField;
+        if (prIsMerged) {
+          newPrField = updatePrLinkInPrField(prField, prHtmlUrl, true);
+        } else {
+          newPrField = deletePrLinkInPrField(prField, prHtmlUrl);
+        }
+        await youtrackApi.updateIssue(taskNum, {
+          fields: [newPrField],
+        });
+        break;
+      }
+      default:
+        break;
+    }
   } catch (error) {
+    if (error instanceof PrFieldError) {
+      console.log("PrFieldError", error);
+      return;
+    }
     core.setFailed(error.message);
   }
 }

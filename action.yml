@@ -1,13 +1,15 @@
-name: 'Youtrack-issue-linking'
-description: 'Linking by comments YouTrack issue with GitHub PR'
-author: 'SMENA'
+name: "Youtrack-issue-linking"
+description: "Linking by comments YouTrack issue with GitHub PR"
+author: "SMENA"
 inputs:
+  youtrack_field_id:
+    description: "field id of youtrack"
   youtrack_url:
-    description: 'base url of youtrack'
+    description: "base url of youtrack"
   youtrack_token:
-    description: 'youtrack token'
+    description: "youtrack token"
   repo_token:
-    description: 'token for commenting PRs'
+    description: "token for commenting PRs"
 runs:
-  using: 'node12'
-  main: 'lib/main.js'
+  using: "node12"
+  main: "lib/main.js"

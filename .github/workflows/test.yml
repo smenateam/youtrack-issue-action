@@ -1,20 +1,18 @@
-name: "Test typescript-action"
 on:
   pull_request:
-  push:
-    branches:
-      - master
-      - 'releases/*'
+    types: [opened, closed, reopened]
 
 jobs:
-  test:
+  comment_pr:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v1
-
-    - run: npm ci
-    - run: npm run build
-    - run: npm test
-    - uses: ./
-      with: 
-        milliseconds: 1000
+      # To use this repository's private action, you must check out the repository
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Action step
+        uses: ./ # Uses an action in the root directory
+        with:
+          repo_token: "e86c02565f9d50e1fb0ca4167fed8ea5845578f8"
+          youtrack_token: "Bearer perm:Qm90.NTMtMw==.BXp1OQ2ojPwJb7OPLDtUEPGfnr7EfB"
+          youtrack_url: "https://youtrack.smena.space"
+          youtrack_field_id: "139-4"
