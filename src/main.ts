@@ -22,7 +22,7 @@ const youtrack = {
     const youtrackConfig: AxiosRequestConfig = {
       baseURL: youtrackBaseURL,
       headers: {
-        Authorization: youtrackToken,
+        Authorization: `Bearer ${youtrackToken}`,
       },
     };
     this.youtrackAxiosInstance = axios.create(youtrackConfig);
