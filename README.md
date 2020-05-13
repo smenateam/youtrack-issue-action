@@ -7,7 +7,7 @@ name: CI
 
 on:
   pull_request:
-    types: [opened]
+    types: [opened, closed, reopened]
 
 jobs:
   build:
@@ -17,10 +17,10 @@ jobs:
     steps:
     - uses: smenateam/youtrack-issue-action@releases/v3
       with:
-        youtrack_url: базовый url для youtrack https://youtrack.harda.ru
+        youtrack_url: базовый url для youtrack
         youtrack_token: ${{ secrets.youtrack_token }}
         repo_token: ${{ secrets.repo_token }}
-        youtrack_field_id: id кастомного поля, в который будет записываться pr
+        youtrack_field_id: youtrack id кастомного поля, в который будет записываться pr
 ```
 2. Добавляем в репо два секрета [Добавление секрета](https://help.github.com/en/articles/virtual-environments-for-github-actions#creating-and-using-secrets-encrypted-variables):
     - youtrack_token - [Получение токена](https://www.jetbrains.com/help/youtrack/incloud/Manage-Permanent-Token.html)
