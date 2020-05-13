@@ -7,7 +7,7 @@ name: CI
 
 on:
   pull_request:
-    types: [opened]
+    types: [opened, closed, reopened]
 
 jobs:
   build:
