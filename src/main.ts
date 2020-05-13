@@ -43,6 +43,7 @@ const youtrack = {
       );
       return prField;
     } catch (error) {
+      console.log("getIssueFieldById error", error);
       const errorMessage = `Request failed with status code ${error.response.status}: ${error.response.data.error_description}`;
       throw new YoutrackError(errorMessage);
     }
@@ -55,6 +56,7 @@ const youtrack = {
       );
       return issue;
     } catch (error) {
+      console.log("updateIssue error", error);
       const errorMessage = `Request failed with status code ${error.response.status}: ${error.response.data.error_description}`;
       throw new YoutrackError(errorMessage);
     }
@@ -201,7 +203,9 @@ async function run() {
           taskNum,
           youtrackFieldId
         );
+        console.log("prField", prField);
         const newPrField = addPrLinkInPrField(prField, prHtmlUrl);
+        console.log("newPrField", newPrField);
         await youtrackApi.updateIssue(taskNum, {
           fields: [newPrField],
         });
@@ -212,12 +216,14 @@ async function run() {
           taskNum,
           youtrackFieldId
         );
+        console.log("prField", prField);
         let newPrField = prField;
         if (prIsMerged) {
           newPrField = updatePrLinkInPrField(prField, prHtmlUrl, true);
         } else {
           newPrField = deletePrLinkInPrField(prField, prHtmlUrl);
         }
+        console.log("newPrField", newPrField);
         await youtrackApi.updateIssue(taskNum, {
           fields: [newPrField],
         });
