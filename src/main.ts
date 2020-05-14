@@ -1,6 +1,17 @@
 import * as core from "@actions/core";
 import * as github from "@actions/github";
 import axios, { AxiosRequestConfig, AxiosInstance } from "axios";
+interface Issue {
+  fields: IssueField[];
+  $type: string;
+}
+interface IssueField<Value = { [key: string]: any }> {
+  value: Value | null;
+  name: string;
+  id: string;
+  $type: string;
+}
+type PrField = IssueField<{ text: string }>;
 
 class PrFieldError extends Error {
   name: "PrFieldError";
@@ -27,31 +38,20 @@ const youtrack = {
     };
     this.youtrackAxiosInstance = axios.create(youtrackConfig);
     return {
-      getIssueFieldById: this.getIssueFieldById.bind(this),
+      getIssueById: this.getIssueById.bind(this),
       updateIssue: this.updateIssue.bind(this),
+      findFieldByName: this.findFieldByName.bind(this),
     };
   },
-  async getIssueFieldById(issueId: string, fieldId: string) {
+  async getIssueById(issueId: string) {
     try {
-      const { data: prField } = await this.youtrackAxiosInstance.get(
-        `/api/issues/${issueId}/customFields/${fieldId}`,
+      const { data: issue } = await this.youtrackAxiosInstance.get<Issue>(
+        `/api/issues/${issueId}/`,
         {
           params: {
-            fields: "name,id,value(text)",
+            fields: "fields(name,id,value(text))",
           },
         }
-      );
-      return prField;
-    } catch (error) {
-      const errorMessage = `Request failed with status code ${error.response.status}: ${error.response.data.error_description}`;
-      throw new YoutrackError(errorMessage);
-    }
-  },
-  async updateIssue(issueId: string, requestData: any) {
-    try {
-      const { data: issue } = await this.youtrackAxiosInstance.post(
-        `/api/issues/${issueId}`,
-        requestData
       );
       return issue;
     } catch (error) {
@@ -59,10 +59,33 @@ const youtrack = {
       throw new YoutrackError(errorMessage);
     }
   },
+  async updateIssue(issueId: string, requestData: any) {
+    try {
+      const { data: issue } = await this.youtrackAxiosInstance.post<Issue>(
+        `/api/issues/${issueId}`,
+        requestData,
+        {
+          params: {
+            fields: "fields(name,id,value(text))",
+          },
+        }
+      );
+      return issue;
+    } catch (error) {
+      const errorMessage = `Request failed with status code ${error.response.status}: ${error.response.data.error_description}`;
+      throw new YoutrackError(errorMessage);
+    }
+  },
+  findFieldByName(fields: IssueField[], name: string) {
+    return fields.find((field) => {
+      if (field.name === name) return true;
+      return false;
+    });
+  },
 };
 
 function addPrLinkInPrField(
-  prField: any,
+  prField: PrField,
   prLink: string,
   merged: boolean = false
 ) {
@@ -93,7 +116,7 @@ function addPrLinkInPrField(
 
   return prField;
 }
-function deletePrLinkInPrField(prField: any, prLink: string) {
+function deletePrLinkInPrField(prField: PrField, prLink: string) {
   const oldPrFieldValue = prField.value;
 
   if (!oldPrFieldValue)
@@ -118,7 +141,11 @@ function deletePrLinkInPrField(prField: any, prLink: string) {
 
   return prField;
 }
-function updatePrLinkInPrField(prField: any, prLink: string, merged: boolean) {
+function updatePrLinkInPrField(
+  prField: PrField,
+  prLink: string,
+  merged: boolean
+) {
   const oldPrFieldValue = prField.value;
 
   if (!oldPrFieldValue) return addPrLinkInPrField(prField, prLink, true);
@@ -144,9 +171,6 @@ function updatePrLinkInPrField(prField: any, prLink: string, merged: boolean) {
 
 async function run() {
   try {
-    const youtrackFieldId = core.getInput("youtrack_field_id", {
-      required: true,
-    });
     const youtrackBaseURL = core.getInput("youtrack_url", { required: true });
     const youtrackToken = core.getInput("youtrack_token", { required: true });
     const repo_token = core.getInput("repo_token", { required: true });
@@ -172,6 +196,14 @@ async function run() {
 
     const youtrackApi = youtrack.init(youtrackBaseURL, youtrackToken);
 
+    const youtrackIssue = await youtrackApi.getIssueById(taskNum);
+
+    const prField = youtrackApi.findFieldByName(
+      youtrackIssue.fields,
+      "Pull Requests"
+    ) as PrField;
+    let newPrField = prField;
+
     switch (github.context.payload.action) {
       case "opened": {
         await client.issues.createComment({
@@ -180,46 +212,28 @@ async function run() {
           issue_number: github.context.payload.pull_request.number,
           body: youtrack_issue_url,
         });
-        const prField = await youtrackApi.getIssueFieldById(
-          taskNum,
-          youtrackFieldId
-        );
-        const newPrField = addPrLinkInPrField(prField, prHtmlUrl);
-        await youtrackApi.updateIssue(taskNum, {
-          fields: [newPrField],
-        });
+        newPrField = addPrLinkInPrField(prField, prHtmlUrl);
         break;
       }
       case "reopened": {
-        const prField = await youtrackApi.getIssueFieldById(
-          taskNum,
-          youtrackFieldId
-        );
-        const newPrField = addPrLinkInPrField(prField, prHtmlUrl);
-        await youtrackApi.updateIssue(taskNum, {
-          fields: [newPrField],
-        });
+        newPrField = addPrLinkInPrField(prField, prHtmlUrl);
         break;
       }
       case "closed": {
-        const prField = await youtrackApi.getIssueFieldById(
-          taskNum,
-          youtrackFieldId
-        );
-        let newPrField = prField;
         if (prIsMerged) {
           newPrField = updatePrLinkInPrField(prField, prHtmlUrl, true);
         } else {
           newPrField = deletePrLinkInPrField(prField, prHtmlUrl);
         }
-        await youtrackApi.updateIssue(taskNum, {
-          fields: [newPrField],
-        });
         break;
       }
       default:
         break;
     }
+
+    await youtrackApi.updateIssue(taskNum, {
+      fields: [newPrField],
+    });
   } catch (error) {
     if (error instanceof PrFieldError) {
       console.log("PrFieldError", error);

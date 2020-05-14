@@ -2,8 +2,6 @@ name: "Youtrack-issue-linking"
 description: "Linking by comments YouTrack issue with GitHub PR"
 author: "SMENA"
 inputs:
-  youtrack_field_id:
-    description: "field id of youtrack"
   youtrack_url:
     description: "base url of youtrack"
   youtrack_token:
