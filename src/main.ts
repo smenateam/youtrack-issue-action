@@ -77,10 +77,15 @@ const youtrack = {
     }
   },
   findFieldByName(fields: IssueField[], name: string) {
-    return fields.find((field) => {
+    const field = fields.find((field) => {
       if (field.name === name) return true;
       return false;
     });
+
+    if (field) return field;
+
+    const errorMessage = `Поле с именем ${name} не найдено`;
+    throw new YoutrackError(errorMessage);
   },
 };
 
