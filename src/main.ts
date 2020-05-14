@@ -98,7 +98,7 @@ function addPrLinkInPrField(
   };
 
   if (oldPrFieldValue) {
-    const regexPrLink = new RegExp(`${prLink}`);
+    const regexPrLink = new RegExp(`${prLink}\\b`);
     const textHasPrLink = !!oldPrFieldValue.text.match(regexPrLink);
 
     if (textHasPrLink)
@@ -116,7 +116,7 @@ function addPrLinkInPrField(
 
   return prField;
 }
-function deletePrLinkInPrField(prField: PrField, prLink: string) {
+function crossOutPrLinkInPrField(prField: PrField, prLink: string) {
   const oldPrFieldValue = prField.value;
 
   if (!oldPrFieldValue)
@@ -124,7 +124,7 @@ function deletePrLinkInPrField(prField: PrField, prLink: string) {
       `Удаляемая ссылка на pull request: ${prLink} не найдена, т.к. описание пустое`
     );
 
-  const regexPrLink = new RegExp(`${prLink}`);
+  const regexPrLink = new RegExp(`${prLink}\\b`);
   const textHasPrLink = !!oldPrFieldValue.text.match(regexPrLink);
 
   if (!textHasPrLink)
@@ -141,7 +141,25 @@ function deletePrLinkInPrField(prField: PrField, prLink: string) {
 
   return prField;
 }
-function updatePrLinkInPrField(
+function reAddPrLinkInPrField(prField: PrField, prLink: string) {
+  const oldPrFieldValue = prField.value;
+
+  if (!oldPrFieldValue) return addPrLinkInPrField(prField, prLink);
+
+  const regexPrLink = new RegExp(`${prLink}\\b`);
+  const textHasPrLink = !!oldPrFieldValue.text.match(regexPrLink);
+
+  if (!textHasPrLink) return addPrLinkInPrField(prField, prLink);
+
+  const regexPrLinkСrossedOut = new RegExp(`~~${prLink}~~`, "g");
+  const newPrFieldValue = {
+    text: oldPrFieldValue.text.replace(regexPrLinkСrossedOut, `- [ ]${prLink}`),
+  };
+  prField.value = newPrFieldValue;
+
+  return prField;
+}
+function updateCheckboxPrLinkInPrField(
   prField: PrField,
   prLink: string,
   merged: boolean
@@ -150,7 +168,7 @@ function updatePrLinkInPrField(
 
   if (!oldPrFieldValue) return addPrLinkInPrField(prField, prLink, true);
 
-  const regexPrLink = new RegExp(`${prLink}`);
+  const regexPrLink = new RegExp(`${prLink}\\b`);
   const textHasPrLink = !!oldPrFieldValue.text.match(regexPrLink);
 
   if (!textHasPrLink) return addPrLinkInPrField(prField, prLink, true);
@@ -216,14 +234,14 @@ async function run() {
         break;
       }
       case "reopened": {
-        newPrField = addPrLinkInPrField(prField, prHtmlUrl);
+        newPrField = reAddPrLinkInPrField(prField, prHtmlUrl);
         break;
       }
       case "closed": {
         if (prIsMerged) {
-          newPrField = updatePrLinkInPrField(prField, prHtmlUrl, true);
+          newPrField = updateCheckboxPrLinkInPrField(prField, prHtmlUrl, true);
         } else {
-          newPrField = deletePrLinkInPrField(prField, prHtmlUrl);
+          newPrField = crossOutPrLinkInPrField(prField, prHtmlUrl);
         }
         break;
       }
