@@ -216,15 +216,10 @@ async function run() {
       "^[A-Za-z]+[\\s-]\\d+[^a-zA-Z0-9А-Яа-я]+"
     );
 
-    let prTitleWithoutTaskNum = "не удалось определить название задачи";
-
-    const prTitleWithoutTaskNumMatchResult = prTitle.match(
-      prTitleWithoutTaskNumRegex
+    const prTitleWithoutTaskNum = prTitle.replace(
+      prTitleWithoutTaskNumRegex,
+      ""
     );
-
-    if (prTitleWithoutTaskNumMatchResult) {
-      prTitleWithoutTaskNum = prTitleWithoutTaskNumMatchResult[1];
-    }
 
     const prLink = `${prHtmlUrl} - ${prTitleWithoutTaskNum}`;
 
