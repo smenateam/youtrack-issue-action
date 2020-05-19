@@ -198,22 +198,35 @@ async function run() {
     const youtrackToken = core.getInput("youtrack_token", { required: true });
     const repo_token = core.getInput("repo_token", { required: true });
 
-    const prTitle = github.context.payload.pull_request["title"];
-    const prHtmlUrl = github.context.payload.pull_request["html_url"];
-    const prIsMerged = github.context.payload.pull_request["merged"];
+    const prTitle: string = github.context.payload.pull_request["title"];
+    const prHtmlUrl: string = github.context.payload.pull_request["html_url"];
+    const prIsMerged: boolean = github.context.payload.pull_request["merged"];
 
-    const prLink = `${prHtmlUrl} - ${prTitle}`;
+    const taskNumRegex = new RegExp("^([A-Za-z]+[\\s-]\\d+)");
+    const taskNumMatchResult = prTitle.match(taskNumRegex);
 
-    const regex = new RegExp("^([A-Za-z]+[\\s-]\\d+)");
-    let taskNum = prTitle.match(regex);
-
-    if (taskNum === null) {
+    if (taskNumMatchResult === null) {
       throw new Error(`Не найден номер youtrack задачи в ${prTitle}`);
     }
 
-    taskNum = prTitle.match(regex)[1];
-
+    let taskNum = taskNumMatchResult[1];
     taskNum = taskNum.replace(/\s/, "-");
+
+    const prTitleWithoutTaskNumRegex = new RegExp(
+      "^[A-Za-z]+[\\s-]\\d+[^a-zA-Z0-9А-Яа-я]+"
+    );
+
+    let prTitleWithoutTaskNum = "не удалось определить название задачи";
+
+    const prTitleWithoutTaskNumMatchResult = prTitle.match(
+      prTitleWithoutTaskNumRegex
+    );
+
+    if (prTitleWithoutTaskNumMatchResult) {
+      prTitleWithoutTaskNum = prTitleWithoutTaskNumMatchResult[1];
+    }
+
+    const prLink = `${prHtmlUrl} - ${prTitleWithoutTaskNum}`;
 
     const youtrack_issue_url = `${youtrackBaseURL}/issue/${taskNum}`;
 
