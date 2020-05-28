@@ -1,10 +1,9 @@
 const path = require("path");
 
 module.exports = {
-  mode: "development",
+  mode: "production",
   entry: ["@babel/polyfill", "./src/main.ts"],
   target: "node",
-  devtool: "inline-source-map",
   devServer: {
     contentBase: "./dist",
     hot: true,

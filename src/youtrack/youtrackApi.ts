@@ -44,15 +44,13 @@ const youtrack = {
           },
         }
       );
-      console.log(issue);
       return issue;
     } catch (error) {
-      console.log(error);
       const errorMessage = `Request failed with status code ${error.response.status}: ${error.response.data.error_description}`;
       throw new YoutrackError(errorMessage);
     }
   },
-  async updateIssue(issueId: string, requestData: any) {
+  async updateIssue(issueId: string, requestData: Issue) {
     try {
       const { data: issue } = await this.youtrackAxiosInstance.post<Issue>(
         `/api/issues/${issueId}`,

@@ -1,6 +1,6 @@
 export interface Issue {
-  fields: IssueField[];
-  $type: string;
+  fields?: IssueField[];
+  $type?: string;
 }
 export interface IssueField<Value = { [key: string]: any }> {
   value: Value | null;
