@@ -5,6 +5,14 @@
 2. Затем по этому id получает информацию о youtrack задаче
 3. В найденой youtrack задаче, в ее списке используемых полей получает значения поля, которое имеет название "Pull Requests"
 4. Затем выполняет соответствующие действия в зависимости от типа pull request-а и статуса ```merged```:
+  - **edited** 
+    - <details>
+           <summary>создает новое значение для Pull Requests поля, изменяя в его старом значении имя pull request-а на новое</summary>
+           <ul>
+            <li>если значение поля пустое, то пробрасывает ошибку с соответствующим сообщением</li>
+            <li>если значение поля не пустое, и содержит в себе ссылку на pull request, то заменяет имя pull request-а на новое</li>
+           </ul>
+       </details>
   - **opened** 
     - добавляет в текущий открытый pull request комментарий с адресом на youtrack задачу 
     - <details>
@@ -16,7 +24,6 @@
             <li>если значение поля не пустое и не имеет в конце перенос строки (\n), то создает новое значение: {предыдущее значение поля}\n- [ ]{pull request link}\n</li>
            </ul>
        </details>
-    - обновляет в youtrack задаче значение кастомного поля на новое
   - **reopened**
     - <details>
            <summary>создает новое значение для Pull Requests поля, заменяя в его старом значении зачеркнутую ссылку с pull request-ом на pull request с checkbox значением false</summary>
@@ -55,7 +62,7 @@ name: CI
 
 on:
   pull_request:
-    types: [opened, closed, reopened]
+    types: [opened, closed, reopened, edited]
 
 jobs:
   build:

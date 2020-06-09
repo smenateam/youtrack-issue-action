@@ -10,4 +10,4 @@ inputs:
     description: "token for commenting PRs"
 runs:
   using: "node12"
-  main: "lib/main.js"
+  main: "dist/main.js"
